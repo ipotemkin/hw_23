@@ -29,16 +29,31 @@ parser.add_argument("filename", type=str)  # a file to process
 
 
 @index_ns.route("/")
+@index_ns.doc(params={
+    "filter": "Что ищем?",
+    "limit": "Сколько срок выводим?",
+    "sort": "Как сортируем? <asc:desc>",
+    "map": "Какую колонку выводим?",
+    "unique": "Выводим только уникальные значения",
+    "filename": "Файл, с которым работаем",
+})
 class IndexView(Resource):
     @api.expect(parser)
     def post(self):
-        cmd_filter = parser.parse_args()["filter"]
-        cmd_limit = parser.parse_args()["limit"]
-        cmd_map = parser.parse_args()["map"]
-        cmd_unique = parser.parse_args()["unique"]
-        filename = parser.parse_args()["filename"]
+        params_dict = parser.parse_args()
 
-        return f"filter={cmd_filter}, limit={cmd_limit}, map={cmd_map}, unique={cmd_unique}, filename={filename}"
+        cmd_filter = params_dict["filter"]
+        cmd_limit = params_dict["limit"]
+        cmd_sort = params_dict["sort"]
+        cmd_map = params_dict["map"]
+        cmd_unique = params_dict["unique"]
+        filename = params_dict["filename"]
+
+        return {k: v for k, v in params_dict.items() if v is not None}
+
+        # return f"filter={cmd_filter}, limit={cmd_limit}, sort={cmd_sort}," \
+        #        f" map={cmd_map}, unique={cmd_unique}, filename={filename}"
+
         # return request.args
         # return "<h1>Here will be your query results<h1>"
 
