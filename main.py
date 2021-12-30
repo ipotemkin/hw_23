@@ -1,16 +1,18 @@
-from flask import Flask
-from flask_restx import reqparse, Api, Resource, inputs
+from flask import Flask, abort
+from flask_restx import reqparse, Api, Resource, inputs, fields
 from utils import (
     read_line_from_file,
     find_substring,
     make_unique_lst,
     get_strings,
     MyIndexError,
+    split_str
 )
 from flask_pydantic import validate
 from pydantic import BaseModel, PositiveInt
-from typing import Optional
+from typing import Optional, Union, Generator
 from enum import Enum
+import json
 
 app = Flask(__name__)
 app.url_map.strict_slashes = False
@@ -37,6 +39,14 @@ parser.add_argument(
 
 # input_model = api.Model("InputModel")
 
+my_fields = api.model('BodyModel', {
+    'filename': fields.String(description='Имя файла', required=True, default="apache_logs.txt"),
+    'cmd1': fields.String(description='Первая команда', enum=["filter", "limit", "map", "sort", "unique"]),
+    'value1': fields.String(description='Значение первой команды'),
+    'cmd2': fields.String(description='Вторая команда', enum=["filter", "limit", "map", "sort", "unique"]),
+    'value2': fields.String(description='Значение второй команды'),
+})
+
 
 class SortEnum(str, Enum):
     asc = "asc"
@@ -50,6 +60,25 @@ class QueryModel(BaseModel):
     map: Optional[PositiveInt]
     unique: Optional[bool]
     filename: str = "apache_logs.txt"
+
+    class Config:
+        orm_mode = True
+
+
+class CmdEnum(str, Enum):
+    filter = "filter"
+    limit = "limit"
+    map = "map"
+    sort = "sort"
+    unique = "unique"
+
+
+class BodyModel(BaseModel):
+    filename: str = "apache_logs.txt"
+    cmd1: CmdEnum
+    value1: str
+    cmd2: CmdEnum
+    value2: str
 
     class Config:
         orm_mode = True
@@ -115,72 +144,55 @@ def execute_request(query: QueryModel):
     return get_strings(source, column=query.map, limit=query.limit)
 
 
+def run_cmd(source: Union[Generator, list], cmd: str, value: str) -> list:
+    res = []
+    if cmd == "filter":
+        res = list(filter(lambda x: value in x, source))
+    if cmd == "limit":
+        res = source[:int(value)]
+    if cmd == "unique":
+        res = list(set(source))
+    if cmd == "sort":
+        rev_order = False if value == "asc" else True
+        res = sorted(source, reverse=rev_order)
+    if cmd == "map":
+        if (index := int(value)) < 1:
+            raise MyIndexError
+        try:
+            res = list(map(lambda x: split_str(x)[index-1], source))
+        except IndexError:
+            raise MyIndexError
+    return res
+
+
 @index_ns.route("/")
-@index_ns.doc(
-    params={
-        "filter": "Что ищем?",
-        "limit": "Сколько срок выводим? (>0)",
-        "sort": "Как сортируем? <asc:desc>",
-        "map": "Какую колонку выводим? (>0)",
-        "unique": "Выводим только уникальные значения",
-        "filename": "Файл, с которым работаем",
-    }
-)
 class IndexView(Resource):
+    @index_ns.doc(
+        params={
+            "filter": "Что ищем?",
+            "limit": "Сколько срок выводим? (>0)",
+            "sort": "Как сортируем? <asc:desc>",
+            "map": "Какую колонку выводим? (>0)",
+            "unique": "Выводим только уникальные значения",
+            "filename": "Файл, с которым работаем",
+        }
+    )
     @api.expect(parser)
     @validate()
     def get(self, query: QueryModel):
         return execute_request(query)
 
-    @api.expect(parser)
+    # @api.expect(parser)
     @validate()
-    def post(self, query: QueryModel):
-        return execute_request(query)
-
-        # params_dict = parser.parse_args()
-        #
-        # cmd_filter = params_dict["filter"]
-        # cmd_limit = params_dict["limit"]
-        # cmd_sort = params_dict["sort"]
-        # cmd_map = params_dict["map"]
-        # cmd_unique = params_dict["unique"]
-        # filename = params_dict["filename"]
-        #
-        # # return {k: v for k, v in params_dict.items() if v is not None}
-        #
-        # source = read_line_from_file("./data/" + filename)
-        #
-        # rev_order = False if cmd_sort == "asc" else True
-        #
-        # if cmd_filter:
-        #     if cmd_unique:
-        #         if cmd_sort:
-        #             return sorted(
-        #                 list(set(find_substring(source, cmd_filter, cmd_map))),
-        #                 reverse=rev_order,
-        #             )[:cmd_limit]
-        #         return list(set(find_substring(source, cmd_filter, cmd_map)))[
-        #             :cmd_limit
-        #         ]
-        #
-        #     if cmd_sort:
-        #         return sorted(
-        #             find_substring(source, cmd_filter, cmd_map), reverse=rev_order
-        #         )[:cmd_limit]
-        #     return find_substring(source, cmd_filter, cmd_map, cmd_limit)
-        #
-        # if cmd_unique:
-        #     if cmd_sort:
-        #         return sorted(
-        #             make_unique_lst(source, column=cmd_map), reverse=rev_order
-        #         )[:cmd_limit]
-        #     return make_unique_lst(source, column=cmd_map, limit=cmd_limit)
-        #
-        # if cmd_sort:
-        #     return sorted(get_strings(source, column=cmd_map), reverse=rev_order)[
-        #         :cmd_limit
-        #     ]
-        # return get_strings(source, column=cmd_map, limit=cmd_limit)
+    @index_ns.doc(body=my_fields)
+    def post(self, body: BodyModel):
+        # pl = index_ns.payload
+        source = read_line_from_file("./data/" + body.filename)
+        body_d = json.loads(body.json())
+        # print(body.dict())
+        # print(body_d)
+        res = run_cmd(source, body_d["cmd1"], body_d["value1"])
+        return run_cmd(res, body_d["cmd2"], body_d["value2"])
 
 
 if __name__ == "__main__":
