@@ -1,6 +1,6 @@
 from flask import Flask
 from flask_restx import Api
-from views import index_ns
+from app.views import index_ns
 
 app = Flask(__name__)
 app.url_map.strict_slashes = False

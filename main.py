@@ -1,5 +1,5 @@
-from utils import MyIndexError
-from app import app, api
+from app.utils import MyIndexError
+from app.app import app, api
 
 
 @api.errorhandler(MyIndexError)

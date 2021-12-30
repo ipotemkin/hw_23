@@ -1,12 +1,8 @@
 from flask_restx import Resource, Namespace, reqparse, inputs, fields
 from flask_pydantic import validate
 import json
-from models import BodyModel, QueryModel
-from utils import (
-    read_line_from_file,
-    run_cmd,
-    execute_request
-)
+from app.models import BodyModel, QueryModel
+from app.utils import read_line_from_file, run_cmd, execute_request
 import os
 
 index_ns = Namespace("perform_query", description="Выполнить запрос")
@@ -21,17 +17,28 @@ parser.add_argument(
     "filename", type=str, required=True, default="apache_logs.txt"
 )  # a file to process
 
-my_fields = index_ns.model('BodyModel', {
-    'filename': fields.String(description='Имя файла', required=True, default="apache_logs.txt"),
-    'cmd1': fields.String(description='Первая команда', enum=["filter", "limit", "map", "sort", "unique"]),
-    'value1': fields.String(description='Значение первой команды'),
-    'cmd2': fields.String(description='Вторая команда', enum=["filter", "limit", "map", "sort", "unique"]),
-    'value2': fields.String(description='Значение второй команды'),
-})
+my_fields = index_ns.model(
+    "BodyModel",
+    {
+        "filename": fields.String(
+            description="Имя файла", required=True, default="apache_logs.txt"
+        ),
+        "cmd1": fields.String(
+            description="Первая команда",
+            enum=["filter", "limit", "map", "sort", "unique"],
+        ),
+        "value1": fields.String(description="Значение первой команды"),
+        "cmd2": fields.String(
+            description="Вторая команда",
+            enum=["filter", "limit", "map", "sort", "unique"],
+        ),
+        "value2": fields.String(description="Значение второй команды"),
+    },
+)
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(BASE_DIR, "data")
+DATA_DIR = os.path.join(BASE_DIR, "../data")
 
 
 @index_ns.route("/")
@@ -54,8 +61,7 @@ class IndexView(Resource):
     @validate()
     @index_ns.doc(
         body=my_fields,
-        description=
-        """
+        description="""
 **cmd1**, **cmd2** - команды
 **value1**, **value2** – значения команд
 
@@ -64,7 +70,7 @@ class IndexView(Resource):
 **limit** – ограничивает количество строк в выводе,
 **map** – вывести колонку с указанным номером (первая колонка = 1),
 **sort** – сортируем вывод <asc – по возрастанию, desc – по убыванию>,
-**unique** – выводим только уникальные сроки        
+**unique** – выводим только уникальные сроки
 
 **Пример:**
 {
@@ -73,7 +79,7 @@ class IndexView(Resource):
 'cmd2': 'limit',
 'value2': '5'  # выводим 5 строк
 }
-"""
+""",
     )
     def post(self, body: BodyModel):
         source = read_line_from_file(os.path.join(DATA_DIR, body.filename))

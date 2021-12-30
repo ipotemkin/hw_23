@@ -1,19 +1,8 @@
 import re
 from typing import Generator, Union
 from flask import abort
-from models import QueryModel
-from errors import MyIndexError
-
-
-# def find(file_path, txt):
-#     with open(file_path) as f:
-#         while True:
-#             try:
-#                 line = next(f)
-#             except StopIteration:
-#                 break
-#             if txt in line:
-#                 yield line[:-1]
+from app.models import QueryModel
+from app.errors import MyIndexError
 
 
 def read_line_from_file(file_path):
@@ -82,7 +71,7 @@ def run_cmd(source: Union[Generator, list], cmd: str, value: str) -> list:
     if cmd == "filter":
         res = list(filter(lambda x: value in x, source))
     if cmd == "limit":
-        res = source[:int(value)]
+        res = source[: int(value)]
     if cmd == "unique":
         res = list(set(source))
     if cmd == "sort":
@@ -92,7 +81,7 @@ def run_cmd(source: Union[Generator, list], cmd: str, value: str) -> list:
         if (index := int(value)) < 1:
             raise MyIndexError
         try:
-            res = list(map(lambda x: split_str(x)[index-1], source))
+            res = list(map(lambda x: split_str(x)[index - 1], source))
         except IndexError:
             raise MyIndexError
     return res
@@ -136,7 +125,7 @@ def execute_request(query: QueryModel) -> list:
 
 # just for testing
 if __name__ == "__main__":
-    it = iter(read_line_from_file("./data/apache_logs.txt"))
+    it = iter(read_line_from_file("../data/apache_logs.txt"))
     string = next(it)
     print(string)
     # column = get_column(string, 5)
