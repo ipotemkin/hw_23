@@ -1,6 +1,6 @@
 from flask import Flask
 from flask_restx import reqparse, Api, Resource, inputs
-from utils import read_line_from_file, find_subsring, get_column, make_unique_lst, get_strings
+from utils import read_line_from_file, find_subsring, make_unique_lst, get_strings
 
 app = Flask(__name__)
 app.url_map.strict_slashes = False
@@ -22,6 +22,7 @@ parser.add_argument("sort", type=str, choices=('asc', 'desc'))  # <asc:desc>
 parser.add_argument("map", type=inputs.positive)  # a column number to output
 parser.add_argument("unique", type=str)  # outputs only unique values
 parser.add_argument("filename", type=str, required=True)  # a file to process
+
 # input_model = api.Model("InputModel")
 
 
@@ -66,44 +67,21 @@ class IndexView(Resource):
 
         # return {k: v for k, v in params_dict.items() if v is not None}
 
-        print(cmd_unique)
-
         source = read_line_from_file("./data/" + filename)
 
         rev_order = False if cmd_sort == "asc" else True
 
         if cmd_filter:
-            # print("cmd_filter and not cmd_unique and not cmd_sor")
-            # return find_subsring(source, cmd_filter, cmd_map, cmd_limit)
-
-            if not cmd_unique and not cmd_sort:
-                return find_subsring(source, cmd_filter, cmd_map, cmd_limit)
-
-            if not cmd_unique and cmd_sort:
-                # rev_order = False if cmd_sort == "asc" else True
-                return sorted(find_subsring(source, cmd_filter, cmd_map), reverse=rev_order)[:cmd_limit]
-
-            if cmd_unique and not cmd_sort:
+            if cmd_unique:
+                if cmd_sort:
+                    return sorted(
+                        list(set(find_subsring(source, cmd_filter, cmd_map))), reverse=rev_order
+                    )[:cmd_limit]
                 return list(set(find_subsring(source, cmd_filter, cmd_map)))[:cmd_limit]
-                # return make_unique_lst(source, column=cmd_map)[:cmd_limit]
 
-            if cmd_unique and cmd_sort:
-                return sorted(
-                    list(set(find_subsring(source, cmd_filter, cmd_map))), reverse=rev_order
-                )[:cmd_limit]
-                # rev_order = False if cmd_sort == "asc" else True
-                # return sorted(make_unique_lst(source, column=cmd_map), reverse=rev_order)[:cmd_limit]
-
-            # print("cmd_filter and cmd_unique")
-            # if cmd_sort:
-            #     # rev_order = False if cmd_sort == "asc" else True
-            #     res.sort(reverse=rev_order)
-            # return sorted(find_subsring(source, cmd_filter, cmd_map))[:cmd_limit]
-            #
-            # res = find_subsring(source, cmd_filter, cmd_map)
-            # rev_order = False if cmd_sort == "asc" else True
-            # res.sort(reverse=rev_order)
-            # return res[:cmd_limit]
+            if cmd_sort:
+                return sorted(find_subsring(source, cmd_filter, cmd_map), reverse=rev_order)[:cmd_limit]
+            return find_subsring(source, cmd_filter, cmd_map, cmd_limit)
 
         if cmd_unique:
             if cmd_sort:
