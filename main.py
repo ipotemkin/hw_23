@@ -1,6 +1,16 @@
 from flask import Flask
 from flask_restx import reqparse, Api, Resource, inputs
-from utils import read_line_from_file, find_substring, make_unique_lst, get_strings
+from utils import (
+    read_line_from_file,
+    find_substring,
+    make_unique_lst,
+    get_strings,
+    MyIndexError,
+)
+from flask_pydantic import validate
+from pydantic import BaseModel, PositiveInt
+from typing import Optional
+from enum import Enum
 
 app = Flask(__name__)
 app.url_map.strict_slashes = False
@@ -20,10 +30,29 @@ parser.add_argument("filter", type=str)  # a text to find
 parser.add_argument("limit", type=inputs.positive)  # a number of strings to output
 parser.add_argument("sort", type=str, choices=("asc", "desc"))  # <asc:desc>
 parser.add_argument("map", type=inputs.positive)  # a column number to output
-parser.add_argument("unique", type=str)  # outputs only unique values
-parser.add_argument("filename", type=str, required=True)  # a file to process
+parser.add_argument("unique", type=bool)  # outputs only unique values
+parser.add_argument(
+    "filename", type=str, required=True, default="apache_logs.txt"
+)  # a file to process
 
 # input_model = api.Model("InputModel")
+
+
+class SortEnum(str, Enum):
+    asc = "asc"
+    desc = "desc"
+
+
+class QueryModel(BaseModel):
+    filter: Optional[str]
+    limit: Optional[PositiveInt]
+    sort: Optional[SortEnum]
+    map: Optional[PositiveInt]
+    unique: Optional[bool]
+    filename: str = "apache_logs.txt"
+
+    class Config:
+        orm_mode = True
 
 
 # @app.route('/')
@@ -44,11 +73,53 @@ parser.add_argument("filename", type=str, required=True)  # a file to process
 #     return app.response_class('', content_type="text/plain")
 
 
+@api.errorhandler(MyIndexError)
+def index_error(e):
+    print("I am in index_error")
+    return {"error": "Index Error", "message": "The column number is out of range"}, 400
+
+
+def execute_request(query: QueryModel):
+    source = read_line_from_file("./data/" + query.filename)
+
+    rev_order = False if query.sort == "asc" else True
+
+    if query.filter:
+        if query.unique:
+            if query.sort:
+                return sorted(
+                    list(set(find_substring(source, query.filter, query.map))),
+                    reverse=rev_order,
+                )[: query.limit]
+            return list(set(find_substring(source, query.filter, query.map)))[
+                : query.limit
+            ]
+
+        if query.sort:
+            return sorted(
+                find_substring(source, query.filter, query.map), reverse=rev_order
+            )[: query.limit]
+        return find_substring(source, query.filter, query.map, query.limit)
+
+    if query.unique:
+        if query.sort:
+            return sorted(make_unique_lst(source, column=query.map), reverse=rev_order)[
+                : query.limit
+            ]
+        return make_unique_lst(source, column=query.map, limit=query.limit)
+
+    if query.sort:
+        return sorted(get_strings(source, column=query.map), reverse=rev_order)[
+            : query.limit
+        ]
+    return get_strings(source, column=query.map, limit=query.limit)
+
+
 @index_ns.route("/")
 @index_ns.doc(
     params={
         "filter": "Что ищем?",
-        "limit": "Сколько срок выводим?",
+        "limit": "Сколько срок выводим? (>0)",
         "sort": "Как сортируем? <asc:desc>",
         "map": "Какую колонку выводим? (>0)",
         "unique": "Выводим только уникальные значения",
@@ -57,49 +128,59 @@ parser.add_argument("filename", type=str, required=True)  # a file to process
 )
 class IndexView(Resource):
     @api.expect(parser)
-    def post(self):
-        params_dict = parser.parse_args()
+    @validate()
+    def get(self, query: QueryModel):
+        return execute_request(query)
 
-        cmd_filter = params_dict["filter"]
-        cmd_limit = params_dict["limit"]
-        cmd_sort = params_dict["sort"]
-        cmd_map = params_dict["map"]
-        cmd_unique = params_dict["unique"]
-        filename = params_dict["filename"]
+    @api.expect(parser)
+    @validate()
+    def post(self, query: QueryModel):
+        return execute_request(query)
 
-        # return {k: v for k, v in params_dict.items() if v is not None}
-
-        source = read_line_from_file("./data/" + filename)
-
-        rev_order = False if cmd_sort == "asc" else True
-
-        if cmd_filter:
-            if cmd_unique:
-                if cmd_sort:
-                    return sorted(
-                        list(set(find_substring(source, cmd_filter, cmd_map))),
-                        reverse=rev_order,
-                    )[:cmd_limit]
-                return list(set(find_substring(source, cmd_filter, cmd_map)))[:cmd_limit]
-
-            if cmd_sort:
-                return sorted(
-                    find_substring(source, cmd_filter, cmd_map), reverse=rev_order
-                )[:cmd_limit]
-            return find_substring(source, cmd_filter, cmd_map, cmd_limit)
-
-        if cmd_unique:
-            if cmd_sort:
-                return sorted(
-                    make_unique_lst(source, column=cmd_map), reverse=rev_order
-                )[:cmd_limit]
-            return make_unique_lst(source, column=cmd_map, limit=cmd_limit)
-
-        if cmd_sort:
-            return sorted(get_strings(source, column=cmd_map), reverse=rev_order)[
-                :cmd_limit
-            ]
-        return get_strings(source, column=cmd_map, limit=cmd_limit)
+        # params_dict = parser.parse_args()
+        #
+        # cmd_filter = params_dict["filter"]
+        # cmd_limit = params_dict["limit"]
+        # cmd_sort = params_dict["sort"]
+        # cmd_map = params_dict["map"]
+        # cmd_unique = params_dict["unique"]
+        # filename = params_dict["filename"]
+        #
+        # # return {k: v for k, v in params_dict.items() if v is not None}
+        #
+        # source = read_line_from_file("./data/" + filename)
+        #
+        # rev_order = False if cmd_sort == "asc" else True
+        #
+        # if cmd_filter:
+        #     if cmd_unique:
+        #         if cmd_sort:
+        #             return sorted(
+        #                 list(set(find_substring(source, cmd_filter, cmd_map))),
+        #                 reverse=rev_order,
+        #             )[:cmd_limit]
+        #         return list(set(find_substring(source, cmd_filter, cmd_map)))[
+        #             :cmd_limit
+        #         ]
+        #
+        #     if cmd_sort:
+        #         return sorted(
+        #             find_substring(source, cmd_filter, cmd_map), reverse=rev_order
+        #         )[:cmd_limit]
+        #     return find_substring(source, cmd_filter, cmd_map, cmd_limit)
+        #
+        # if cmd_unique:
+        #     if cmd_sort:
+        #         return sorted(
+        #             make_unique_lst(source, column=cmd_map), reverse=rev_order
+        #         )[:cmd_limit]
+        #     return make_unique_lst(source, column=cmd_map, limit=cmd_limit)
+        #
+        # if cmd_sort:
+        #     return sorted(get_strings(source, column=cmd_map), reverse=rev_order)[
+        #         :cmd_limit
+        #     ]
+        # return get_strings(source, column=cmd_map, limit=cmd_limit)
 
 
 if __name__ == "__main__":

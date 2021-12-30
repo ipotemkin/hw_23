@@ -1,5 +1,10 @@
 import re
 from typing import Generator
+from flask import abort
+
+
+class MyIndexError(Exception):
+    pass
 
 
 def find(file_path, txt):
@@ -14,19 +19,22 @@ def find(file_path, txt):
 
 
 def read_line_from_file(file_path):
-    with open(file_path) as f:
-        while True:
-            try:
-                yield next(f)
-            except StopIteration:
-                break
+    try:
+        with open(file_path) as f:
+            while True:
+                try:
+                    yield next(f)
+                except StopIteration:
+                    break
+    except FileNotFoundError:
+        abort(400, "File not fund")
 
 
 # string_split = re.split('"\s"|"\s|\s"|(\[\])|\s-\s-\s', string)
 
 
 def split_str(text: str) -> list:
-    text_split = re.split('"\s"|"\s|\s"|(\[\])|\s-\s-\s', text)  # noqa
+    text_split = re.split(r'"\s"|"\s|\s"|(\[\])|\s-\s-\s', text)  # noqa
     return [item.strip() for item in text_split if item]
 
 
@@ -39,7 +47,7 @@ def get_column(text: str, column: int) -> str:
     """
     split_text = split_str(text)
     if column > len(split_text):
-        raise IndexError
+        raise MyIndexError
     return split_text[column - 1]
 
 
