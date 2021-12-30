@@ -1,21 +1,19 @@
 import re
-from typing import Generator
+from typing import Generator, Union
 from flask import abort
+from models import QueryModel
+from errors import MyIndexError
 
 
-class MyIndexError(Exception):
-    pass
-
-
-def find(file_path, txt):
-    with open(file_path) as f:
-        while True:
-            try:
-                line = next(f)
-            except StopIteration:
-                break
-            if txt in line:
-                yield line[:-1]
+# def find(file_path, txt):
+#     with open(file_path) as f:
+#         while True:
+#             try:
+#                 line = next(f)
+#             except StopIteration:
+#                 break
+#             if txt in line:
+#                 yield line[:-1]
 
 
 def read_line_from_file(file_path):
@@ -28,9 +26,6 @@ def read_line_from_file(file_path):
                     break
     except FileNotFoundError:
         abort(400, "File not fund")
-
-
-# string_split = re.split('"\s"|"\s|\s"|(\[\])|\s-\s-\s', string)
 
 
 def split_str(text: str) -> list:
@@ -82,6 +77,64 @@ def find_substring(
     return result_lst
 
 
+def run_cmd(source: Union[Generator, list], cmd: str, value: str) -> list:
+    res = []
+    if cmd == "filter":
+        res = list(filter(lambda x: value in x, source))
+    if cmd == "limit":
+        res = source[:int(value)]
+    if cmd == "unique":
+        res = list(set(source))
+    if cmd == "sort":
+        rev_order = False if value == "asc" else True
+        res = sorted(source, reverse=rev_order)
+    if cmd == "map":
+        if (index := int(value)) < 1:
+            raise MyIndexError
+        try:
+            res = list(map(lambda x: split_str(x)[index-1], source))
+        except IndexError:
+            raise MyIndexError
+    return res
+
+
+def execute_request(query: QueryModel) -> list:
+    source = read_line_from_file("./data/" + query.filename)
+
+    rev_order = False if query.sort == "asc" else True
+
+    if query.filter:
+        if query.unique:
+            if query.sort:
+                return sorted(
+                    list(set(find_substring(source, query.filter, query.map))),
+                    reverse=rev_order,
+                )[: query.limit]
+            return list(set(find_substring(source, query.filter, query.map)))[
+                : query.limit
+            ]
+
+        if query.sort:
+            return sorted(
+                find_substring(source, query.filter, query.map), reverse=rev_order
+            )[: query.limit]
+        return find_substring(source, query.filter, query.map, query.limit)
+
+    if query.unique:
+        if query.sort:
+            return sorted(make_unique_lst(source, column=query.map), reverse=rev_order)[
+                : query.limit
+            ]
+        return make_unique_lst(source, column=query.map, limit=query.limit)
+
+    if query.sort:
+        return sorted(get_strings(source, column=query.map), reverse=rev_order)[
+            : query.limit
+        ]
+    return get_strings(source, column=query.map, limit=query.limit)
+
+
+# just for testing
 if __name__ == "__main__":
     it = iter(read_line_from_file("./data/apache_logs.txt"))
     string = next(it)
