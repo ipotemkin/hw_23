@@ -1,5 +1,6 @@
 from flask import Flask
-from flask_restx import reqparse, Api, Resource
+from flask_restx import reqparse, Api, Resource, inputs
+from utils import read_line_from_file, find_subsring, get_column, make_unique_lst, get_strings
 
 app = Flask(__name__)
 app.url_map.strict_slashes = False
@@ -16,11 +17,12 @@ api = Api(
 index_ns = api.namespace("perform_query")
 parser = reqparse.RequestParser()
 parser.add_argument("filter", type=str)  # a text to find
-parser.add_argument("limit", type=int)  # a number of strings to output
-parser.add_argument("sort", type=str)  # <asc:desc>
-parser.add_argument("map", type=int)  # a column number to output
+parser.add_argument("limit", type=inputs.positive)  # a number of strings to output
+parser.add_argument("sort", type=str, choices=('asc', 'desc'))  # <asc:desc>
+parser.add_argument("map", type=inputs.positive)  # a column number to output
 parser.add_argument("unique", type=str)  # outputs only unique values
-parser.add_argument("filename", type=str)  # a file to process
+parser.add_argument("filename", type=str, required=True)  # a file to process
+# input_model = api.Model("InputModel")
 
 
 # @app.route('/')
@@ -28,12 +30,25 @@ parser.add_argument("filename", type=str)  # a file to process
 #     return "<h1>Homework 23: Functional Programming<h1>"
 
 
+# BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# DATA_DIR = os.path.join(BASE_DIR, "data")
+#
+#
+# @app.route("/perform_query")
+# def perform_query():
+#     # получить параметры query и file_name из request.args, при ошибке вернуть ошибку 400
+#     # проверить, что файла file_name существует в папке DATA_DIR, при ошибке вернуть ошибку 400
+#     # с помощью функционального программирования (функций filter, map), итераторов/генераторов сконструировать запрос
+#     # вернуть пользователю сформированный результат
+#     return app.response_class('', content_type="text/plain")
+
+
 @index_ns.route("/")
 @index_ns.doc(params={
     "filter": "Что ищем?",
     "limit": "Сколько срок выводим?",
     "sort": "Как сортируем? <asc:desc>",
-    "map": "Какую колонку выводим?",
+    "map": "Какую колонку выводим? (>0)",
     "unique": "Выводим только уникальные значения",
     "filename": "Файл, с которым работаем",
 })
@@ -49,7 +64,55 @@ class IndexView(Resource):
         cmd_unique = params_dict["unique"]
         filename = params_dict["filename"]
 
-        return {k: v for k, v in params_dict.items() if v is not None}
+        # return {k: v for k, v in params_dict.items() if v is not None}
+
+        print(cmd_unique)
+
+        source = read_line_from_file("./data/" + filename)
+
+        rev_order = False if cmd_sort == "asc" else True
+
+        if cmd_filter:
+            # print("cmd_filter and not cmd_unique and not cmd_sor")
+            # return find_subsring(source, cmd_filter, cmd_map, cmd_limit)
+
+            if not cmd_unique and not cmd_sort:
+                return find_subsring(source, cmd_filter, cmd_map, cmd_limit)
+
+            if not cmd_unique and cmd_sort:
+                # rev_order = False if cmd_sort == "asc" else True
+                return sorted(find_subsring(source, cmd_filter, cmd_map), reverse=rev_order)[:cmd_limit]
+
+            if cmd_unique and not cmd_sort:
+                return list(set(find_subsring(source, cmd_filter, cmd_map)))[:cmd_limit]
+                # return make_unique_lst(source, column=cmd_map)[:cmd_limit]
+
+            if cmd_unique and cmd_sort:
+                return sorted(
+                    list(set(find_subsring(source, cmd_filter, cmd_map))), reverse=rev_order
+                )[:cmd_limit]
+                # rev_order = False if cmd_sort == "asc" else True
+                # return sorted(make_unique_lst(source, column=cmd_map), reverse=rev_order)[:cmd_limit]
+
+            # print("cmd_filter and cmd_unique")
+            # if cmd_sort:
+            #     # rev_order = False if cmd_sort == "asc" else True
+            #     res.sort(reverse=rev_order)
+            # return sorted(find_subsring(source, cmd_filter, cmd_map))[:cmd_limit]
+            #
+            # res = find_subsring(source, cmd_filter, cmd_map)
+            # rev_order = False if cmd_sort == "asc" else True
+            # res.sort(reverse=rev_order)
+            # return res[:cmd_limit]
+
+        if cmd_unique:
+            if cmd_sort:
+                return sorted(make_unique_lst(source, column=cmd_map), reverse=rev_order)[:cmd_limit]
+            return make_unique_lst(source, column=cmd_map, limit=cmd_limit)
+
+        if cmd_sort:
+            return sorted(get_strings(source, column=cmd_map), reverse=rev_order)[:cmd_limit]
+        return get_strings(source, column=cmd_map, limit=cmd_limit)
 
         # return f"filter={cmd_filter}, limit={cmd_limit}, sort={cmd_sort}," \
         #        f" map={cmd_map}, unique={cmd_unique}, filename={filename}"
