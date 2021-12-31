@@ -1,8 +1,10 @@
+import os
 import re
 from typing import Generator, Union
 from flask import abort
 from app.models import QueryModel
 from app.errors import MyIndexError
+from app.const import DATA_DIR
 
 
 def read_line_from_file(file_path):
@@ -88,8 +90,7 @@ def run_cmd(source: Union[Generator, list], cmd: str, value: str) -> list:
 
 
 def execute_request(query: QueryModel) -> list:
-    source = read_line_from_file("./data/" + query.filename)
-
+    source = read_line_from_file(os.path.join(DATA_DIR, query.filename))
     rev_order = False if query.sort == "asc" else True
 
     if query.filter:

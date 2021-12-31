@@ -4,6 +4,7 @@ import json
 from app.models import BodyModel, QueryModel
 from app.utils import read_line_from_file, run_cmd, execute_request
 import os
+from app.const import DATA_DIR
 
 index_ns = Namespace("perform_query", description="Выполнить запрос")
 
@@ -35,10 +36,6 @@ my_fields = index_ns.model(
         "value2": fields.String(description="Значение второй команды"),
     },
 )
-
-
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(BASE_DIR, "../data")
 
 
 @index_ns.route("/")
