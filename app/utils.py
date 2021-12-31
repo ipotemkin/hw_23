@@ -3,7 +3,7 @@ import re
 from typing import Generator, Union
 from flask import abort
 from app.models import QueryModel
-from app.errors import MyIndexError
+from app.errors import MyIndexError, RowNumberError
 from app.const import DATA_DIR
 
 
@@ -73,7 +73,13 @@ def run_cmd(source: Union[Generator, list], cmd: str, value: str) -> list:
     if cmd == "filter":
         res = list(filter(lambda x: value in x, source))
     if cmd == "limit":
-        res = source[: int(value)]
+        try:
+            rows = int(value)
+        except ValueError:
+            raise RowNumberError
+        if rows < 1:
+            raise RowNumberError
+        res = source[:rows]
     if cmd == "unique":
         res = list(set(source))
     if cmd == "sort":
