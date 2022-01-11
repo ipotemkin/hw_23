@@ -92,6 +92,8 @@ def run_cmd(source: Union[Generator, list], cmd: str, value: str) -> list:
             res = list(map(lambda x: split_str(x)[index - 1], source))
         except IndexError:
             raise MyIndexError
+    if cmd == "regex":
+        res = list(filter(lambda x: re.search(value, x), source))
     return res
 
 

@@ -26,7 +26,7 @@ my_fields = index_ns.model(
         ),
         "cmd1": fields.String(
             description="Первая команда",
-            enum=["filter", "limit", "map", "sort", "unique"],
+            enum=["filter", "limit", "map", "sort", "unique", "regexp"],
         ),
         "value1": fields.String(description="Значение первой команды"),
         "cmd2": fields.String(

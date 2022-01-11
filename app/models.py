@@ -27,6 +27,7 @@ class CmdEnum(str, Enum):
     map = "map"
     sort = "sort"
     unique = "unique"
+    regex = "regex"
 
 
 class BodyModel(BaseModel):
