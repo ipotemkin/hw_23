@@ -8,7 +8,7 @@ def index_error(e):
 
 
 @api.errorhandler(RowNumberError)
-def index_error(e):
+def row_number_error(e):
     return {"error": "Row Number Error", "message": "The row number should be int and more than 0"}, 400
 
 
