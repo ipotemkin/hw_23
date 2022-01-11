@@ -15,6 +15,7 @@ class QueryModel(BaseModel):
     sort: Optional[SortEnum]
     map: Optional[PositiveInt]
     unique: Optional[bool]
+    regex: Optional[str]
     filename: str = FILENAME
 
     class Config:

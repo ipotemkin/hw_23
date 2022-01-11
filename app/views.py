@@ -10,6 +10,7 @@ index_ns = Namespace("perform_query", description="Выполнить запро
 
 parser = reqparse.RequestParser()
 parser.add_argument("filter", type=str)  # a text to find
+parser.add_argument("regex", type=str)  # a regular expression to find
 parser.add_argument("limit", type=inputs.positive)  # a number of strings to output
 parser.add_argument("sort", type=str, choices=("asc", "desc"))  # <asc:desc>
 parser.add_argument("map", type=inputs.positive)  # a column number to output
@@ -43,6 +44,7 @@ class IndexView(Resource):
     @index_ns.doc(
         params={
             "filter": "Что ищем?",
+            "regex": "Поиск по рег выражению",
             "limit": "Сколько срок выводим? (>0)",
             "sort": "Как сортируем? <asc:desc>",
             "map": "Какую колонку выводим? (>0)",

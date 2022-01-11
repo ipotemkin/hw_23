@@ -68,6 +68,20 @@ def find_substring(
     return result_lst
 
 
+def find_regex(
+    source: Generator, substring: str, column: int = None, limit: int = None
+) -> list:
+    result_lst = []
+    for line in source:
+        if column:
+            line = get_column(line, column)
+        if re.search(substring, line):
+            if limit and not (len(result_lst) < limit):
+                break
+            result_lst.append(line)
+    return result_lst
+
+
 def run_cmd(source: Union[Generator, list], cmd: str, value: str) -> list:
     res = []
     if cmd == "filter":
@@ -100,6 +114,23 @@ def run_cmd(source: Union[Generator, list], cmd: str, value: str) -> list:
 def execute_request(query: QueryModel) -> list:
     source = read_line_from_file(os.path.join(DATA_DIR, query.filename))
     rev_order = False if query.sort == "asc" else True
+
+    if query.regex:
+        if query.unique:
+            if query.sort:
+                return sorted(
+                    list(set(find_regex(source, query.regex, query.map))),
+                    reverse=rev_order,
+                )[: query.limit]
+            return list(set(find_substring(source, query.regex, query.map)))[
+                : query.limit
+            ]
+
+        if query.sort:
+            return sorted(
+                find_regex(source, query.regex, query.map), reverse=rev_order
+            )[: query.limit]
+        return find_regex(source, query.regex, query.map, query.limit)
 
     if query.filter:
         if query.unique:

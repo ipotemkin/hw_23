@@ -8,7 +8,7 @@ app.config["JSON_AS_ASCII"] = False
 
 api = Api(
     app,
-    version="1.0.0",
+    version="1.1.0",
     title="Log tools API",
     description="Homework 23 with SkyPro's Python Dev Course",
     contact="Igor Potemkin",
