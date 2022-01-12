@@ -1,6 +1,6 @@
 import os
 import re
-from typing import Generator, Union
+from typing import Generator, Union, List
 from flask import abort
 from app.models import QueryModel
 from app.errors import MyIndexError, RowNumberError
@@ -38,7 +38,7 @@ def get_column(text: str, column: int) -> str:
 
 
 def get_strings(source: Generator, column: int = None, limit: int = None) -> list:
-    result_lst = []
+    result_lst: List[str] = []
     for line in source:
         if column:
             line = get_column(line, column)
@@ -57,7 +57,7 @@ def make_unique_lst(source: Generator, column: int = None, limit: int = None) ->
 def find_substring(
     source: Generator, substring: str, column: int = None, limit: int = None
 ) -> list:
-    result_lst = []
+    result_lst: List[str] = []
     for line in source:
         if column:
             line = get_column(line, column)
@@ -71,7 +71,7 @@ def find_substring(
 def find_regex(
     source: Generator, substring: str, column: int = None, limit: int = None
 ) -> list:
-    result_lst = []
+    result_lst: List[str] = []
     for line in source:
         if column:
             line = get_column(line, column)
@@ -82,7 +82,7 @@ def find_regex(
     return result_lst
 
 
-def run_cmd(source: Union[Generator, list], cmd: str, value: str) -> list:
+def run_cmd(source: list, cmd: str, value: str) -> list:
     res = []
     if cmd == "filter":
         res = list(filter(lambda x: value in x, source))
