@@ -9,7 +9,10 @@ def index_error(e):
 
 @api.errorhandler(RowNumberError)
 def row_number_error(e):
-    return {"error": "Row Number Error", "message": "The row number should be int and more than 0"}, 400
+    return {
+        "error": "Row Number Error",
+        "message": "The row number should be int and more than 0",
+    }, 400
 
 
 if __name__ == "__main__":

@@ -82,7 +82,7 @@ def find_regex(
     return result_lst
 
 
-def run_cmd(source: list, cmd: str, value: str) -> list:
+def run_cmd(source: Union[Generator, list], cmd: str, value: str) -> list:
     res = []
     if cmd == "filter":
         res = list(filter(lambda x: value in x, source))
@@ -93,7 +93,7 @@ def run_cmd(source: list, cmd: str, value: str) -> list:
             raise RowNumberError
         if rows < 1:
             raise RowNumberError
-        res = source[:rows]
+        res = list(source)[:rows]
     if cmd == "unique":
         res = list(set(source))
     if cmd == "sort":
