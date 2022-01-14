@@ -115,52 +115,84 @@ def execute_request(query: QueryModel) -> list:
     source = read_line_from_file(os.path.join(DATA_DIR, query.filename))
     rev_order = False if query.sort == "asc" else True
 
+    # if query.regex and query.unique and query.sort:
+    #     return sorted(
+    #         list(set(find_regex(source, query.regex, query.map))),
+    #         reverse=rev_order,
+    #     )[: query.limit]
+    #
+    # if query.regex and query.unique and not query.sort:
+    #     return list(set(find_regex(source, query.regex, query.map)))[:query.limit]
+    #
+    # if query.regex and not query.unique and query.sort:
+    #     return sorted(
+    #         find_regex(source, query.regex, query.map), reverse=rev_order
+    #     )[: query.limit]
+    #
+    # if query.regex and not query.unique and not query.sort:
+    #     return find_regex(source, query.regex, query.map, query.limit)
+
     if query.regex:
-        if query.unique:
-            if query.sort:
-                return sorted(
-                    list(set(find_regex(source, query.regex, query.map))),
-                    reverse=rev_order,
-                )[: query.limit]
-            return list(set(find_regex(source, query.regex, query.map)))[
-                : query.limit
-            ]
-
-        if query.sort:
-            return sorted(
-                find_regex(source, query.regex, query.map), reverse=rev_order
-            )[: query.limit]
-        return find_regex(source, query.regex, query.map, query.limit)
-
-    if query.filter:
-        if query.unique:
-            if query.sort:
-                return sorted(
-                    list(set(find_substring(source, query.filter, query.map))),
-                    reverse=rev_order,
-                )[: query.limit]
-            return list(set(find_substring(source, query.filter, query.map)))[
-                : query.limit
-            ]
-
-        if query.sort:
-            return sorted(
-                find_substring(source, query.filter, query.map), reverse=rev_order
-            )[: query.limit]
-        return find_substring(source, query.filter, query.map, query.limit)
+        source = find_regex(source, query.regex, column=query.map)
+    elif query.filter:
+        source = find_substring(source, query.filter, column=query.map)
+    else:
+        source = get_strings(source, column=query.map)
 
     if query.unique:
-        if query.sort:
-            return sorted(make_unique_lst(source, column=query.map), reverse=rev_order)[
-                : query.limit
-            ]
-        return make_unique_lst(source, column=query.map, limit=query.limit)
+        source = list(set(source))
 
     if query.sort:
-        return sorted(get_strings(source, column=query.map), reverse=rev_order)[
-            : query.limit
-        ]
-    return get_strings(source, column=query.map, limit=query.limit)
+        source = sorted(source, reverse=rev_order)
+
+    return source[:query.limit]
+
+    # if query.regex:
+    #     if query.unique:
+    #         if query.sort:
+    #             return sorted(
+    #                 list(set(find_regex(source, query.regex, query.map))),
+    #                 reverse=rev_order,
+    #             )[: query.limit]
+    #         return list(set(find_regex(source, query.regex, query.map)))[
+    #             : query.limit
+    #         ]
+    #
+    #     if query.sort:
+    #         return sorted(
+    #             find_regex(source, query.regex, query.map), reverse=rev_order
+    #         )[: query.limit]
+    #     return find_regex(source, query.regex, query.map, query.limit)
+    #
+    # if query.filter:
+    #     if query.unique:
+    #         if query.sort:
+    #             return sorted(
+    #                 list(set(find_substring(source, query.filter, query.map))),
+    #                 reverse=rev_order,
+    #             )[: query.limit]
+    #         return list(set(find_substring(source, query.filter, query.map)))[
+    #             : query.limit
+    #         ]
+    #
+    #     if query.sort:
+    #         return sorted(
+    #             find_substring(source, query.filter, query.map), reverse=rev_order
+    #         )[: query.limit]
+    #     return find_substring(source, query.filter, query.map, query.limit)
+    #
+    # if query.unique:
+    #     if query.sort:
+    #         return sorted(make_unique_lst(source, column=query.map), reverse=rev_order)[
+    #             : query.limit
+    #         ]
+    #     return make_unique_lst(source, column=query.map, limit=query.limit)
+    #
+    # if query.sort:
+    #     return sorted(get_strings(source, column=query.map), reverse=rev_order)[
+    #         : query.limit
+    #     ]
+    # return get_strings(source, column=query.map, limit=query.limit)
 
 
 # just for testing
