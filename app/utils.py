@@ -122,7 +122,7 @@ def execute_request(query: QueryModel) -> list:
                     list(set(find_regex(source, query.regex, query.map))),
                     reverse=rev_order,
                 )[: query.limit]
-            return list(set(find_substring(source, query.regex, query.map)))[
+            return list(set(find_regex(source, query.regex, query.map)))[
                 : query.limit
             ]
 
