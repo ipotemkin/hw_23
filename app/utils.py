@@ -82,8 +82,8 @@ def find_regex(
     return result_lst
 
 
-def run_cmd(source: Union[Generator, list], cmd: str, value: str) -> list:
-    res = []
+def run_cmd(source: Union[Generator, list], cmd: str, value: str) -> List[str]:
+    res: List[str] = []
     if cmd == "filter":
         res = list(filter(lambda x: value in x, source))
     if cmd == "limit":
