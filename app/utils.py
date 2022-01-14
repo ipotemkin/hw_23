@@ -145,7 +145,7 @@ def execute_request(query: QueryModel) -> list:
     if query.sort:
         source = sorted(source, reverse=rev_order)
 
-    return source[:query.limit]
+    return source[: query.limit]
 
     # if query.regex:
     #     if query.unique:

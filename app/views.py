@@ -82,6 +82,5 @@ class IndexView(Resource):
     )
     def post(self, body: BodyModel):
         source = read_line_from_file(os.path.join(DATA_DIR, body.filename))
-        body_d = json.loads(body.json())  # to transform to a simple dictionary
-        res = run_cmd(source, body_d["cmd1"], body_d["value1"])
-        return run_cmd(res, body_d["cmd2"], body_d["value2"])
+        res = run_cmd(source, body.cmd1.value, body.value1)
+        return run_cmd(res, body.cmd2.value, body.value2)
