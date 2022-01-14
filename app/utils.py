@@ -1,9 +1,8 @@
 import os
 import re
 from typing import Generator, Union, List
-from flask import abort
 from app.models import QueryModel
-from app.errors import MyIndexError, RowNumberError
+from app.errors import MyIndexError, RowNumberError, MyFileNotFoundError
 from app.const import DATA_DIR
 
 
@@ -16,7 +15,7 @@ def read_line_from_file(file_path):
                 except StopIteration:
                     break
     except FileNotFoundError:
-        abort(400, "File not fund")
+        raise MyFileNotFoundError
 
 
 def split_str(text: str) -> list:

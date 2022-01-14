@@ -4,3 +4,7 @@ class MyIndexError(Exception):
 
 class RowNumberError(Exception):
     pass
+
+
+class MyFileNotFoundError(Exception):
+    pass
