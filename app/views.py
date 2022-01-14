@@ -1,6 +1,5 @@
 from flask_restx import Resource, Namespace, reqparse, inputs, fields
 from flask_pydantic import validate
-import json
 from app.models import BodyModel, QueryModel
 from app.utils import read_line_from_file, run_cmd, execute_request
 import os
