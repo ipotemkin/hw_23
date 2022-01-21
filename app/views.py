@@ -3,7 +3,8 @@ from flask_pydantic import validate
 from app.models import BodyModel, QueryModel
 from app.utils import read_line_from_file, run_cmd, execute_request
 import os
-from app.const import DATA_DIR
+from app.const import DATA_DIR, RATE_LIMIT
+from app.limit import limiter
 
 index_ns = Namespace("perform_query", description="Выполнить запрос")
 
@@ -40,6 +41,8 @@ my_fields = index_ns.model(
 
 @index_ns.route("/")
 class IndexView(Resource):
+    decorators = [limiter.limit(RATE_LIMIT)]
+
     @index_ns.doc(
         params={
             "filter": "Что ищем?",
@@ -56,7 +59,6 @@ class IndexView(Resource):
     def get(self, query: QueryModel):
         return execute_request(query)
 
-    @validate()
     @index_ns.doc(
         body=my_fields,
         description="""
@@ -79,7 +81,16 @@ class IndexView(Resource):
 }
 """,
     )
+    @validate()
     def post(self, body: BodyModel):
         source = read_line_from_file(os.path.join(DATA_DIR, body.filename))
         res = run_cmd(source, body.cmd1.value, body.value1)
         return run_cmd(res, body.cmd2.value, body.value2)
+
+
+# @index_ns.route("/text/")
+# @index_ns.expect(parser)
+# @validate()
+# @limiter.limit("1/hour")
+# def get_data(query: QueryModel):
+#     return execute_request(query)

@@ -1,6 +1,7 @@
 from flask import Flask
 from flask_restx import Api
 from app.views import index_ns
+from app.limit import limiter
 
 app = Flask(__name__)
 app.url_map.strict_slashes = False
@@ -15,3 +16,5 @@ api = Api(
     contact_email="ipotemkin@rambler.ru",
 )
 api.add_namespace(index_ns)
+
+limiter.init_app(app)
