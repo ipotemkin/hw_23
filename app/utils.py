@@ -47,10 +47,10 @@ def get_strings(source: Generator, column: int = None, limit: int = None) -> lis
     return result_lst
 
 
-def make_unique_lst(source: Generator, column: int = None, limit: int = None) -> list:
-    if not column:
-        return list(set([line for line in source]))[:limit]
-    return list(set([get_column(line, column) for line in source]))[:limit]
+# def make_unique_lst(source: Generator, column: int = None, limit: int = None) -> list:
+#     if not column:
+#         return list(set([line for line in source]))[:limit]
+#     return list(set([get_column(line, column) for line in source]))[:limit]
 
 
 def find_substring(
